@@ -72,7 +72,7 @@ Devuelve SOLO JSON válido con esta estructura:
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gpt-6-astra",
+        model: "gpt-5.6-luna",
         input: prompt
       })
     });
