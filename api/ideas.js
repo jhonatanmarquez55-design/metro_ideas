@@ -13,7 +13,8 @@ export default async function handler(req, res) {
       client = "",
       campaign = "",
       centralIdea = "",
-      products = []
+      selectedProducts = [],
+      availableProducts = []
     } = req.body || {};
 
     if (!centralIdea || typeof centralIdea !== "string") {
@@ -23,14 +24,21 @@ export default async function handler(req, res) {
     const safeClient = String(client).slice(0, 120);
     const safeCampaign = String(campaign).slice(0, 160);
     const safeIdea = String(centralIdea).slice(0, 1800);
-    const safeProducts = Array.isArray(products)
-      ? products.slice(0, 30).map(x => String(x).slice(0, 120))
+
+    const safeSelected = Array.isArray(selectedProducts)
+      ? selectedProducts.slice(0, 30).map(x => String(x).slice(0, 140))
+      : [];
+
+    const safeAvailable = Array.isArray(availableProducts)
+      ? availableProducts.slice(0, 60).map(x => String(x).slice(0, 140))
       : [];
 
     const prompt = `
 Eres un estratega comercial y de contenidos de Metro Ecuador.
 
-Genera DOS caminos de propuesta digital para una ejecutiva comercial.
+Debes generar DOS caminos de propuesta digital para una ejecutiva comercial.
+Además de la idea, cada camino debe incluir una MINI PROPUESTA DE PRODUCTOS
+con cantidades sugeridas.
 
 CLIENTE:
 ${safeClient || "No indicado"}
@@ -41,26 +49,43 @@ ${safeCampaign || "No indicada"}
 IDEA INICIAL:
 ${safeIdea}
 
-PRODUCTOS SELECCIONADOS:
-${safeProducts.length ? safeProducts.join(", ") : "No indicados"}
+PRODUCTOS QUE LA EJECUTIVA YA HABÍA SELECCIONADO, SI EXISTEN:
+${safeSelected.length ? safeSelected.join(", ") : "Ninguno todavía"}
+
+PRODUCTOS DISPONIBLES EN EL TARIFARIO:
+${safeAvailable.length ? safeAvailable.join("\n- ") : "No disponibles"}
 
 REGLAS:
-- Genera exactamente 2 ideas.
-- Cada una debe ser un solo párrafo breve.
-- Aproximadamente 70 a 110 palabras por idea.
-- Deben tener enfoques claramente distintos.
-- Deben ser concretas, comerciales y fáciles de entender.
-- Usa los productos seleccionados cuando aporten sentido.
-- No inventes productos adicionales.
-- No inventes precios, métricas, resultados ni alcance.
+- Genera exactamente 2 caminos.
+- Cada idea debe ser un solo párrafo de aproximadamente 70 a 110 palabras.
+- Los dos caminos deben ser claramente distintos.
+- Después de cada idea incluye una combinación pequeña y lógica de productos.
+- Normalmente recomienda entre 2 y 4 tipos de producto por camino.
+- Las cantidades pueden ser 1, 2, 3, etc., según tenga sentido.
+- Usa EXCLUSIVAMENTE nombres presentes en PRODUCTOS DISPONIBLES EN EL TARIFARIO.
+- Puedes mantener productos ya seleccionados si encajan, pero no estás obligado.
+- No inventes precios.
+- No inventes métricas, alcance, impresiones ni resultados.
 - No prometas resultados.
-- No desarrolles aún el plan completo.
+- No incluyas banners/display a menos que aparezcan en la lista de productos disponibles.
+- La combinación de productos debe tener relación directa con la idea.
 
-Devuelve SOLO JSON válido con esta estructura:
+Devuelve SOLO JSON válido con esta estructura exacta:
 {
   "ideas": [
-    "Primer párrafo...",
-    "Segundo párrafo..."
+    {
+      "text": "Primer párrafo...",
+      "products": [
+        {"product": "Nombre exacto del producto", "quantity": 1},
+        {"product": "Nombre exacto del producto", "quantity": 2}
+      ]
+    },
+    {
+      "text": "Segundo párrafo...",
+      "products": [
+        {"product": "Nombre exacto del producto", "quantity": 1}
+      ]
+    }
   ]
 }
 `;
@@ -80,7 +105,9 @@ Devuelve SOLO JSON válido con esta estructura:
     if (!apiResponse.ok) {
       const detail = await apiResponse.text();
       console.error("OpenAI error:", apiResponse.status, detail);
-      return res.status(502).json({ error: "OpenAI no pudo generar las ideas." });
+      return res.status(502).json({
+        error: "OpenAI no pudo generar las ideas."
+      });
     }
 
     const data = await apiResponse.json();
@@ -111,9 +138,18 @@ Devuelve SOLO JSON válido con esta estructura:
       throw new Error("La respuesta no contiene dos ideas.");
     }
 
-    return res.status(200).json({
-      ideas: [String(parsed.ideas[0]), String(parsed.ideas[1])]
-    });
+    const normalized = parsed.ideas.slice(0,2).map(item => ({
+      text: String(item.text || item.idea || ""),
+      products: Array.isArray(item.products)
+        ? item.products.slice(0,6).map(p => ({
+            product: String(p.product || p.name || ""),
+            quantity: Math.max(1, Math.min(20, Number(p.quantity) || 1))
+          })).filter(p => p.product)
+        : []
+    }));
+
+    return res.status(200).json({ ideas: normalized });
+
   } catch (error) {
     console.error(error);
     return res.status(500).json({
@@ -122,4 +158,3 @@ Devuelve SOLO JSON válido con esta estructura:
     });
   }
 }
-
