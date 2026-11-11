@@ -6,7 +6,7 @@ async function callOpenAI(prompt) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "gpt-5.6-luna",
+      model: "gpt-6-luna",
       input: prompt
     })
   });
@@ -79,19 +79,30 @@ export default async function handler(req, res) {
 Eres un estratega comercial y de contenidos de Metro Ecuador.
 
 Analiza el BRIEF DEL CLIENTE que aparece más abajo y prepara un primer
-aterrizaje comercial para una ejecutiva de ventas.
+aterrizaje comercial listo para ser presentado al cliente.
+
+OBJETIVO:
+- Identificar cliente y campaña si están claramente escritos en el brief.
+- Resumir qué necesita el cliente.
+- Redactar una IDEA CENTRAL clara, general, aterrizada y presentable al cliente.
+- Proponer DOS caminos de ejecución comercial con productos y cantidades sugeridas.
+
+TONO Y REDACCIÓN:
+- Escribe como si la propuesta fuera a mostrarse directamente al cliente.
+- Evita lenguaje interno como "la ejecutiva podría", "podemos venderle" o "se recomienda vender".
+- La idea central debe explicar con claridad QUÉ proponemos y PARA QUÉ.
+- Debe ser suficientemente general para funcionar como concepto rector, pero concreta para que el cliente entienda la ejecución.
+- Usa lenguaje comercial/editorial fluido, profesional y directo.
+- No hagas todavía una bajada de producción completa.
 
 IMPORTANTE:
 - Trabaja únicamente con lo que realmente dice el brief.
 - Si cliente o campaña no están claros, devuelve cadena vacía.
-- No inventes precios, presupuestos, métricas, resultados, fechas ni claims.
-- No agregues requisitos que el brief no menciona.
-- Las recomendaciones de productos deben salir EXCLUSIVAMENTE de la lista
-  PRODUCTOS DISPONIBLES.
+- No inventes precios, presupuestos, métricas, resultados, fechas, beneficios o claims.
+- Las recomendaciones de productos deben salir EXCLUSIVAMENTE de la lista PRODUCTOS DISPONIBLES.
 - Recomienda una combinación compacta: normalmente entre 2 y 4 tipos de producto.
 - Las cantidades pueden variar (ej. 1 Reel, 1 Galería, 2 Historias).
 - Los dos caminos deben ser diferentes pero coherentes con el mismo brief.
-- El texto debe sonar comercial, concreto y presentable; no hagas una bajada de producción completa.
 
 PRODUCTOS DISPONIBLES:
 ${availableProducts.map(x => `- ${x}`).join("\n")}
@@ -108,18 +119,18 @@ Devuelve SOLO JSON válido con esta estructura exacta:
     "campaign": "Nombre de campaña si aparece claramente, o vacío",
     "summary": "Resumen ejecutivo del brief en 2-3 frases",
     "objective": "Objetivo u oportunidad principal en 1-2 frases",
-    "centralIdea": "Una idea central sugerida, corta y comercial",
+    "centralIdea": "Un párrafo corto, claro, general y aterrizado, redactado directamente para el cliente. Debe explicar qué proponemos y cómo se conectará con la audiencia, sin entrar todavía en el detalle de producción.",
     "ideas": [
       {
         "title": "Nombre corto del camino 1",
-        "text": "Un párrafo de aproximadamente 70-110 palabras",
+        "text": "Un párrafo de aproximadamente 70-110 palabras, redactado como propuesta directa para el cliente.",
         "products": [
           {"product": "Nombre EXACTO de PRODUCTOS DISPONIBLES", "quantity": 1}
         ]
       },
       {
         "title": "Nombre corto del camino 2",
-        "text": "Un párrafo de aproximadamente 70-110 palabras",
+        "text": "Un párrafo de aproximadamente 70-110 palabras, redactado como propuesta directa para el cliente.",
         "products": [
           {"product": "Nombre EXACTO de PRODUCTOS DISPONIBLES", "quantity": 1}
         ]
@@ -183,7 +194,8 @@ Devuelve SOLO JSON válido con esta estructura exacta:
     const prompt = `
 Eres un estratega comercial y de contenidos de Metro Ecuador.
 
-Debes generar DOS caminos de propuesta digital para una ejecutiva comercial.
+Debes generar DOS caminos de propuesta digital a partir de una idea inicial.
+El texto final debe quedar listo para ser presentado directamente al cliente.
 Además de la idea, cada camino debe incluir una MINI PROPUESTA DE PRODUCTOS
 con cantidades sugeridas.
 
@@ -205,6 +217,8 @@ ${safeAvailable.length ? safeAvailable.map(x=>`- ${x}`).join("\n") : "No disponi
 REGLAS:
 - Genera exactamente 2 caminos.
 - Cada idea debe ser un solo párrafo de aproximadamente 70 a 110 palabras.
+- Escribe directamente para el cliente, no como una nota interna.
+- Explica qué proponemos, cómo funcionaría y qué rol cumple el contenido.
 - Los dos caminos deben ser claramente distintos.
 - Después de cada idea incluye una combinación pequeña y lógica de productos.
 - Normalmente recomienda entre 2 y 4 tipos de producto por camino.
@@ -219,13 +233,13 @@ Devuelve SOLO JSON válido con esta estructura exacta:
 {
   "ideas": [
     {
-      "text": "Primer párrafo...",
+      "text": "Primer párrafo listo para presentar al cliente...",
       "products": [
         {"product": "Nombre exacto del producto", "quantity": 1}
       ]
     },
     {
-      "text": "Segundo párrafo...",
+      "text": "Segundo párrafo listo para presentar al cliente...",
       "products": [
         {"product": "Nombre exacto del producto", "quantity": 1}
       ]
